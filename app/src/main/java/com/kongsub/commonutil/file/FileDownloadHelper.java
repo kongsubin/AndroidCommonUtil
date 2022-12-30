@@ -7,6 +7,8 @@ import android.os.AsyncTask;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
+import com.kongsub.commonutil.common.EventListener;
+
 import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -15,7 +17,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
 
-public class FileDownload {
+public class FileDownloadHelper {
     public final int URL_RESULT_CODE = 4890;
     private final String TAG = "FileDownload";
 
@@ -26,7 +28,7 @@ public class FileDownload {
     private EventListener eventListener;
 
     // 1. constructor
-    public FileDownload(String requestUrl){
+    public FileDownloadHelper(String requestUrl){
         this.requestUrl = requestUrl;
     }
 
