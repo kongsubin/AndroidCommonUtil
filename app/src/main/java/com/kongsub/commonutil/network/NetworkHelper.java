@@ -1,8 +1,14 @@
 package com.kongsub.commonutil.network;
 
 import static android.content.ContentValues.TAG;
+
+import android.os.AsyncTask;
 import android.util.Log;
 import androidx.annotation.NonNull;
+
+import com.kongsub.commonutil.common.EventListener;
+import com.kongsub.commonutil.file.FileDownloadHelper;
+
 import org.json.JSONObject;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -20,6 +26,9 @@ import java.util.HashMap;
 
 public class NetworkHelper {
     private String headerURL;
+    private EventListener eventListener;
+    private String response = "";
+    private boolean isSuccess = false;
 
     // Constructor
     public NetworkHelper(String headerURL) {
@@ -32,7 +41,7 @@ public class NetworkHelper {
      * @return
      * @throws IOException
      */
-    public String get(String tailURL) throws IOException {
+    public String getTask(String tailURL) throws IOException {
         URL url = new URL(createURL(tailURL));
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 
@@ -66,7 +75,7 @@ public class NetworkHelper {
      * @return
      * @throws IOException
      */
-    public String post(String tailURL, HashMap<String, String> params) {
+    public String postTask(String tailURL, HashMap<String, String> params) {
         HttpURLConnection connection = null;
         try {
             URL url = new URL(createURL(tailURL));
@@ -106,7 +115,7 @@ public class NetworkHelper {
      * @return
      * @throws IOException
      */
-    public String post(String tailURL, JSONObject params) {
+    public String postTask(String tailURL, JSONObject params) {
         HttpURLConnection connection = null;
         try {
             URL url = new URL(createURL(tailURL));
@@ -139,6 +148,49 @@ public class NetworkHelper {
         return null;
     }
 
+    public void asyncGet(String tailURL, EventListener eventListener) {
+        this.eventListener = eventListener;
+
+        final AsyncGet task = new AsyncGet();
+        task.execute(tailURL);
+    }
+
+    private class AsyncGet extends AsyncTask<String, String, Boolean> {
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
+
+        @Override
+        protected Boolean doInBackground(String... params) {
+            try {
+                response = getTask(params[0]);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            }
+            isSuccess = true;
+            return true;
+        }
+        @Override
+        protected void onProgressUpdate(String... progress) {
+            super.onProgressUpdate(progress);
+        }
+
+        @Override
+        protected void onPostExecute(Boolean result) {
+            super.onPostExecute(result);
+            eventListener.onEvent(isSuccess, response);
+        }
+    }
+
+
+    /**
+     *
+     * @param params Query prams
+     * @param charset ex) UTF-8
+     * @return
+     */
     private String createQuery(HashMap<String, String> params, String charset){
         if (params == null || params.size() == 0) {
             return "";
