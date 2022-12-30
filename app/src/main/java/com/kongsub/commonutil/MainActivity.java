@@ -9,6 +9,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.kongsub.commonutil.databinding.ActivityMainBinding;
 import com.kongsub.commonutil.network.NetworkHelper;
 
 import org.json.JSONException;
@@ -23,29 +24,19 @@ import java.net.URLConnection;
 import java.util.HashMap;
 
 public class MainActivity extends AppCompatActivity {
-    NetworkHelper networkHelper = new NetworkHelper("http://10.0.2.2:8080");
-    Button get;
-    TextView getResult;
-    String getResultString;
+    private ActivityMainBinding binding;
 
-    Button post;
-    EditText postData;
-    TextView postResult;
+    NetworkHelper networkHelper = new NetworkHelper("http://10.0.2.2:8080");
+    String getResultString;
     String postResultString;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        binding = ActivityMainBinding.inflate(getLayoutInflater()); // 1
+        setContentView(binding.getRoot()); // 2
 
-        get = findViewById(R.id.get);
-        getResult = findViewById(R.id.get_result);
-
-        post = findViewById(R.id.post);
-        postData = findViewById(R.id.post_data);
-        postResult = findViewById(R.id.post_result);
-
-        get.setOnClickListener(new View.OnClickListener() {
+        binding.get.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 final GET getTask = new GET();
@@ -53,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        post.setOnClickListener(new View.OnClickListener() {
+        binding.post.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 final POST postTask = new POST();
@@ -71,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected Boolean doInBackground(String... params) {
             try {
-                getResultString = networkHelper.get("api/get");
+                getResultString = networkHelper.getTask("api/get");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -85,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Boolean result) {
             super.onPostExecute(result);
-            getResult.setText(getResultString);
+            binding.getResult.setText(getResultString);
         }
     }
 
@@ -99,12 +90,12 @@ public class MainActivity extends AppCompatActivity {
         protected Boolean doInBackground(String... params) {
             try {
                 JSONObject json = new JSONObject();
-                json.put("id", postData.getText());
+                json.put("id", binding.postData.getText());
 
                 HashMap<String, String> hm = new HashMap<>();
-                hm.put("id", String.valueOf(postData.getText()));
+                hm.put("id", String.valueOf(binding.postData.getText()));
 
-                postResultString = networkHelper.post("api/post", hm);
+                postResultString = networkHelper.postTask("api/post", hm);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -118,8 +109,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Boolean result) {
             super.onPostExecute(result);
-            postResult.setText(postResultString);
+            binding.postResult.setText(postResultString);
         }
     }
-
 }
