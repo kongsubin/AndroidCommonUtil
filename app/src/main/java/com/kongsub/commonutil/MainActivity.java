@@ -1,34 +1,33 @@
 package com.kongsub.commonutil;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.os.AsyncTask;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.TextView;
+import android.widget.Toast;
 
+import com.kongsub.commonutil.common.EventListener;
 import com.kongsub.commonutil.databinding.ActivityMainBinding;
+import com.kongsub.commonutil.file.FileDownloadHelper;
 import com.kongsub.commonutil.network.NetworkHelper;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.HashMap;
-
 public class MainActivity extends AppCompatActivity {
+    private final String URL = "http://10.0.2.2:8080";
+    private final String FILE_DOWN_URL = "/pdf.pdf";
+    private final int URL_RESULT_CODE = 4020;
     private ActivityMainBinding binding;
 
-    NetworkHelper networkHelper = new NetworkHelper("http://10.0.2.2:8080");
-    String getResultString;
-    String postResultString;
+    //get post
+    NetworkHelper networkHelper = new NetworkHelper(URL);
+
+    //file
+    FileDownloadHelper fileDownloadHelper = new FileDownloadHelper(URL + FILE_DOWN_URL, URL_RESULT_CODE);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,77 +38,61 @@ public class MainActivity extends AppCompatActivity {
         binding.get.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                final GET getTask = new GET();
-                getTask.execute();
+                networkHelper.BackgroundGet("/api/get", new EventListener() {
+                    @Override
+                    public void onEvent(boolean isSuccess, String resultMessage) {
+                        if(isSuccess)
+                            binding.getResult.setText(resultMessage);
+                    }
+                });
             }
         });
 
         binding.post.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                final POST postTask = new POST();
-                postTask.execute();
+                JSONObject json = new JSONObject();
+                try {
+                    json.put("id", binding.postData.getText());
+                    networkHelper.BackgroundPost("/api/post", json, new EventListener() {
+                        @Override
+                        public void onEvent(boolean isSuccess, String resultMessage) {
+                            if(isSuccess)
+                                binding.postResult.setText(resultMessage);
+                        }
+                    });
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        //1. setting activity
+        fileDownloadHelper.setDownActivity(this);
+        binding.fileDown.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //2. create file
+                fileDownloadHelper.createFile(MainActivity.this, "test", FileDownloadHelper.FILE_TYPE.PDF);
             }
         });
     }
 
-    private class GET extends AsyncTask<String, String, Boolean> {
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
-
-        @Override
-        protected Boolean doInBackground(String... params) {
-            try {
-                getResultString = networkHelper.getTask("api/get");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return true;
-        }
-        @Override
-        protected void onProgressUpdate(String... progress) {
-            super.onProgressUpdate(progress);
-        }
-
-        @Override
-        protected void onPostExecute(Boolean result) {
-            super.onPostExecute(result);
-            binding.getResult.setText(getResultString);
-        }
-    }
-
-    private class POST extends AsyncTask<String, String, Boolean> {
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
-
-        @Override
-        protected Boolean doInBackground(String... params) {
-            try {
-                JSONObject json = new JSONObject();
-                json.put("id", binding.postData.getText());
-
-                HashMap<String, String> hm = new HashMap<>();
-                hm.put("id", String.valueOf(binding.postData.getText()));
-
-                postResultString = networkHelper.postTask("api/post", hm);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            return true;
-        }
-        @Override
-        protected void onProgressUpdate(String... progress) {
-            super.onProgressUpdate(progress);
-        }
-
-        @Override
-        protected void onPostExecute(Boolean result) {
-            super.onPostExecute(result);
-            binding.postResult.setText(postResultString);
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent intent) {
+        super.onActivityResult(requestCode, resultCode, intent);
+        switch (requestCode) {
+            case URL_RESULT_CODE:
+                Uri fileUri = intent.getData();
+                fileDownloadHelper.BackgroundDownloadFromUri(fileUri, new EventListener() {
+                    @Override
+                    public void onEvent(boolean isSuccess, String resultMessage) {
+                        Toast.makeText(getApplicationContext(), "file download complete!", Toast.LENGTH_SHORT).show();;
+                    }
+                });
+                break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + requestCode);
         }
     }
 }

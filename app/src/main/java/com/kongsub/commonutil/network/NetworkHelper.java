@@ -24,11 +24,15 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
+
 public class NetworkHelper {
     private String headerURL;
     private EventListener eventListener;
     private String response = "";
-    private boolean isSuccess = false;
 
     // Constructor
     public NetworkHelper(String headerURL) {
@@ -148,42 +152,40 @@ public class NetworkHelper {
         return null;
     }
 
-    public void asyncGet(String tailURL, EventListener eventListener) {
+
+    public void BackgroundGet(String tailURL, EventListener eventListener) {
+        Disposable backgroundGet;
+        //onPreExecute
         this.eventListener = eventListener;
-
-        final AsyncGet task = new AsyncGet();
-        task.execute(tailURL);
+        backgroundGet = Observable.fromCallable(() -> {
+                    //doInBackground
+                    response = getTask(tailURL);
+                    return true;
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe((result) -> {
+                    //onPostExecute
+                    eventListener.onEvent(true, response);
+                });
     }
 
-    private class AsyncGet extends AsyncTask<String, String, Boolean> {
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
-
-        @Override
-        protected Boolean doInBackground(String... params) {
-            try {
-                response = getTask(params[0]);
-            } catch (IOException e) {
-                e.printStackTrace();
-                return false;
-            }
-            isSuccess = true;
-            return true;
-        }
-        @Override
-        protected void onProgressUpdate(String... progress) {
-            super.onProgressUpdate(progress);
-        }
-
-        @Override
-        protected void onPostExecute(Boolean result) {
-            super.onPostExecute(result);
-            eventListener.onEvent(isSuccess, response);
-        }
+    public void BackgroundPost(String tailURL, JSONObject params, EventListener eventListener) {
+        Disposable backgroundPost;
+        //onPreExecute
+        this.eventListener = eventListener;
+        backgroundPost = Observable.fromCallable(() -> {
+                    //doInBackground
+                    response = postTask(tailURL, params);
+                    return true;
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe((result) -> {
+                    //onPostExecute
+                    eventListener.onEvent(true, response);
+                });
     }
-
 
     /**
      *
@@ -269,3 +271,46 @@ public class NetworkHelper {
         return res;
     }
 }
+
+
+
+
+
+
+/*
+public void asyncGet(String tailURL, EventListener eventListener) {
+        this.eventListener = eventListener;
+
+        final AsyncGet task = new AsyncGet();
+        task.execute(tailURL);
+    }
+
+    private class AsyncGet extends AsyncTask<String, String, Boolean> {
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
+
+        @Override
+        protected Boolean doInBackground(String... params) {
+            try {
+                response = getTask(params[0]);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            }
+            isSuccess = true;
+            return true;
+        }
+        @Override
+        protected void onProgressUpdate(String... progress) {
+            super.onProgressUpdate(progress);
+        }
+
+        @Override
+        protected void onPostExecute(Boolean result) {
+            super.onPostExecute(result);
+            eventListener.onEvent(isSuccess, response);
+        }
+    }
+ */
